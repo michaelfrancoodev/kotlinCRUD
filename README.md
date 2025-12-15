@@ -371,7 +371,7 @@ com.example.studentcrudapp
 
 # Student CRUD App - MVVM + Room Architecture Flow
 
-Perfect! Here’s a clear **visual flow diagram** for your **Student CRUD App** showing **how data moves** in the **MVVM + Room architecture**:
+ Here’s a clear **visual flow diagram** for your **Student CRUD App** showing **how data moves** in the **MVVM + Room architecture**:
 
 ```
 ┌───────────────────┐
