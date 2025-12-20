@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base App Theme - Simplified -->
+    <style name="Theme.StudentCrudApp" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#3700B3</item>
+    </style>
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Splash screen background color -->
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+
+        <!-- Splash screen icon -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+
+        <!-- Icon background color (optional) -->
+        <item name="windowSplashScreenIconBackgroundColor">#6200EE</item>
+
+        <!-- Duration in milliseconds -->
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+
+        <!-- Theme to use after splash screen -->
+        <item name="postSplashScreenTheme">@style/Theme.StudentCrudApp</item>
+    </style>
+</resources>

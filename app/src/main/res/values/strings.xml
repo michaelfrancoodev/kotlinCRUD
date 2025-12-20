@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Student CRUD App</string>
+    <string name="add_student">Add Student</string>
+    <string name="edit_student">Edit Student</string>
+    <string name="delete_student">Delete Student</string>
+    <string name="student_name">Student Name</string>
+    <string name="course">Course</string>
+    <string name="email">Email</string>
+    <string name="phone">Phone</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="no_students">No students yet</string>
+    <string name="add_first_student">Click + to add your first student</string>
+</resources>
