@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.studentcrudapp.data.entity.Student
@@ -22,10 +26,15 @@ import com.example.studentcrudapp.viewmodel.StudentViewModel
 @Composable
 fun StudentListScreen(viewModel: StudentViewModel) {
     val students by viewModel.students.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedStudent by remember { mutableStateOf<Student?>(null) }
+
+    // Focus manager for keyboard handling
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
         topBar = {
@@ -33,7 +42,7 @@ fun StudentListScreen(viewModel: StudentViewModel) {
                 title = {
                     Column {
                         Text(
-                            "Student Management",
+                            "Student Manager",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -59,65 +68,69 @@ fun StudentListScreen(viewModel: StudentViewModel) {
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (students.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.Default.School,
-                        contentDescription = null,
-                        modifier = Modifier.size(120.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            // Search Bar Section
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { viewModel.updateSearchQuery(it) },
+                onClearClick = {
+                    viewModel.clearSearch()
+                    focusManager.clearFocus()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+
+            // Students List Section
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                if (students.isEmpty()) {
+                    // Empty state - shows when no students match search or database is empty
+                    EmptyState(
+                        isSearching = searchQuery.isNotBlank(),
+                        onClearSearch = {
+                            viewModel.clearSearch()
+                            focusManager.clearFocus()
+                        }
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "No Students Yet",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Click the + button below to add your first student",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(students, key = { it.id }) { student ->
-                        StudentCard(
-                            student = student,
-                            onEdit = {
-                                selectedStudent = student
-                                showEditDialog = true
-                            },
-                            onDelete = {
-                                selectedStudent = student
-                                showDeleteDialog = true
-                            }
-                        )
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
+                } else {
+                    // Show filtered students list
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(students, key = { it.id }) { student ->
+                            StudentCard(
+                                student = student,
+                                searchQuery = searchQuery, // Pass search query to highlight matches
+                                onEdit = {
+                                    selectedStudent = student
+                                    showEditDialog = true
+                                },
+                                onDelete = {
+                                    selectedStudent = student
+                                    showDeleteDialog = true
+                                }
+                            )
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
                     }
                 }
             }
         }
 
+        // Add Student Dialog
         if (showAddDialog) {
             StudentDialog(
                 title = "Add New Student",
@@ -131,6 +144,7 @@ fun StudentListScreen(viewModel: StudentViewModel) {
             )
         }
 
+        // Edit Student Dialog
         if (showEditDialog && selectedStudent != null) {
             StudentDialog(
                 title = "Edit Student",
@@ -152,6 +166,7 @@ fun StudentListScreen(viewModel: StudentViewModel) {
             )
         }
 
+        // Delete Confirmation Dialog
         if (showDeleteDialog && selectedStudent != null) {
             AlertDialog(
                 onDismissRequest = {
@@ -198,9 +213,116 @@ fun StudentListScreen(viewModel: StudentViewModel) {
     }
 }
 
+/**
+ * Search Bar Component
+ * Allows users to filter students by name or course
+ */
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClearClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusManager = LocalFocusManager.current
+
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier,
+        placeholder = { Text("Search by name or course...") },
+        leadingIcon = {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = onClearClick) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        ),
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search
+        ),
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                // Hide keyboard when search button is pressed
+                focusManager.clearFocus()
+            }
+        )
+    )
+}
+
+/**
+ * Empty State Component
+ * Shows different messages based on whether user is searching or database is empty
+ */
+@Composable
+fun EmptyState(
+    isSearching: Boolean,
+    onClearSearch: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            if (isSearching) Icons.Default.SearchOff else Icons.Default.School,
+            contentDescription = null,
+            modifier = Modifier.size(120.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            if (isSearching) "No Results Found" else "No Students Yet",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            if (isSearching) "Try different search terms" else "Click the + button below to add your first student",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+
+        // Show clear search button when searching
+        if (isSearching) {
+            Spacer(modifier = Modifier.height(16.dp))
+            TextButton(onClick = onClearSearch) {
+                Icon(Icons.Default.Close, contentDescription = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Clear Search")
+            }
+        }
+    }
+}
+
+/**
+ * Student Card Component
+ * Displays individual student information
+ */
 @Composable
 fun StudentCard(
     student: Student,
+    searchQuery: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -284,7 +406,7 @@ fun StudentCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
@@ -315,6 +437,10 @@ fun StudentCard(
     }
 }
 
+/**
+ * Student Dialog Component
+ * Used for both adding and editing students
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentDialog(

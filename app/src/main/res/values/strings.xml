@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Student CRUD App</string>
+    <string name="app_name">Student Manager</string>
     <string name="add_student">Add Student</string>
     <string name="edit_student">Edit Student</string>
     <string name="delete_student">Delete Student</string>
